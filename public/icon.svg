@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="96" fill="#1f6f6b"/>
+  <!-- Four speech tiles in Fitzgerald colours, echoing the grid -->
+  <g>
+    <rect x="96"  y="96"  width="140" height="140" rx="24" fill="#FFD75E"/>
+    <rect x="276" y="96"  width="140" height="140" rx="24" fill="#8FD18A"/>
+    <rect x="96"  y="276" width="140" height="140" rx="24" fill="#F6B26B"/>
+    <rect x="276" y="276" width="140" height="140" rx="24" fill="#8CC4EC"/>
+  </g>
+</svg>

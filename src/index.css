@@ -1,0 +1,1082 @@
+:root {
+  /* Calm, high-contrast palette (spec §5 accessibility). Deliberately not a
+     generic AI look — warm sand background, teal accent, clear text. */
+  --bg: #f3efe7;
+  --surface: #ffffff;
+  --surface-sunken: #ece7dc;
+  --ink: #1f2421;
+  --ink-soft: #5b635c;
+  --accent: #1f6f6b;
+  --accent-ink: #ffffff;
+  --line: #d8d2c4;
+  --danger: #b23a3a;
+
+  /* Word-type colours follow the Fitzgerald Key (spec Tier 1). These are
+     defaults; the board store overrides them per user via Settings, writing the
+     same variables (background, derived edge, auto-contrast text). */
+  --cat-pronoun: #ffd75e;        /* Yellow — People / Pronouns */
+  --cat-pronoun-edge: #c7a849;
+  --cat-pronoun-text: #1f2421;
+  --cat-verb: #8fd18a;           /* Green — Actions / Verbs */
+  --cat-verb-edge: #70a36c;
+  --cat-verb-text: #1f2421;
+  --cat-describing: #8cc4ec;     /* Blue — Adjectives / Descriptors */
+  --cat-describing-edge: #6d99b8;
+  --cat-describing-text: #1f2421;
+  --cat-noun: #f6b26b;           /* Orange — Nouns / Objects / Things */
+  --cat-noun-edge: #c08b54;
+  --cat-noun-text: #1f2421;
+  --cat-place: #c3a0e0;          /* Purple — Places */
+  --cat-place-edge: #987daf;
+  --cat-place-text: #1f2421;
+  --cat-social: #f2a9c0;         /* Pink — prepositions / social / little words */
+  --cat-social-edge: #bd8496;
+  --cat-social-text: #1f2421;
+
+  --radius: 14px;
+  --gap: 8px;
+  --tap-min: 72px; /* generous tap target for limited motor control */
+  --speechbar-h: 116px; /* speech (message) bar height — customizable */
+  --bottombtn-h: 56px; /* bottom control-button height — customizable */
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- App shell ---- */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.app__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.app__brand {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.app__title {
+  font-size: 1.15rem;
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+
+/* A clear signal that caregiver edit mode is active. */
+.app--editing .app__header {
+  background: #fff6e2;
+}
+
+.toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Bottom control buttons (Keyboard / Edit / Settings / Done) — height and label
+   scale with the customizable bottom-button size. */
+.toolbar .ctrl {
+  min-height: var(--bottombtn-h, 56px);
+  font-size: clamp(0.95rem, calc(var(--bottombtn-h, 56px) * 0.32), 1.6rem);
+  padding: 0 22px;
+}
+
+.ctrl--hold {
+  border-style: dashed;
+}
+
+.ctrl--danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.ctrl--danger:hover {
+  background: #f7e3e3;
+}
+
+.app__subtitle {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
+/* Anchored speech-bar strip above the board; height is user-customizable. */
+.messagebar-strip {
+  flex: none;
+  height: var(--speechbar-h, 116px);
+  border-bottom: 1px solid var(--line);
+}
+
+.app__main {
+  flex: 1;
+  min-height: 0; /* let the workspace shrink instead of overflowing */
+  padding: var(--gap);
+  display: flex;
+}
+
+/* Whatever the WindowManager renders (mosaic / stack / loading) fills the area. */
+.app__main > * {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* Bottom control bar — Edit / Keyboard (and Settings / Done in edit mode). */
+.app__bottombar {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  padding: 8px 16px;
+  border-top: 1px solid var(--line);
+}
+
+.app--editing .app__bottombar {
+  background: #fff6e2;
+}
+
+.app__footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  padding: 6px 16px;
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  border-top: 1px solid var(--line);
+}
+
+/* ---- Board (cell grid) ---- */
+.board {
+  display: grid;
+  gap: var(--gap);
+  height: 100%;
+  width: 100%;
+}
+
+.module {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Dynamic modules get a subtle accent edge so the "this region changes" idea is
+   visible (spec §1 anchored vs dynamic). */
+.module--dynamic {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px rgba(31, 111, 107, 0.18);
+}
+
+.module__placeholder {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+/* ---- Message bar ---- */
+.message-bar {
+  display: flex;
+  align-items: stretch;
+  gap: var(--gap);
+  height: 100%;
+  padding: var(--gap);
+}
+
+.message-bar__phrase {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 14px;
+  background: var(--surface-sunken);
+  border: none;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 1.35rem;
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.message-bar__placeholder {
+  color: var(--ink-soft);
+  font-size: 1rem;
+}
+
+.message-bar__word {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 2px 10px;
+}
+
+.message-bar__controls {
+  display: flex;
+  gap: var(--gap);
+  align-items: stretch;
+}
+
+/* Speak / backspace / Clear stretch to the speech-bar height; their label/icon
+   scales with it. */
+.message-bar__controls .ctrl {
+  min-width: 120px;
+  font-size: clamp(1rem, calc(var(--speechbar-h, 116px) * 0.2), 1.7rem);
+}
+
+.message-bar__controls .ctrl--speak {
+  min-width: 156px;
+}
+
+.ctrl {
+  min-width: var(--tap-min);
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ctrl:hover {
+  background: var(--surface-sunken);
+}
+
+.ctrl:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.ctrl--speak {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.ctrl--speak:hover {
+  filter: brightness(1.06);
+}
+
+/* ---- Tile grids ---- */
+/* ---- Resizable two-pane board ---- */
+/* ---- Tiling window workspace (react-mosaic) ---- */
+.mosaic-aac.mosaic {
+  height: 100%;
+  width: 100%;
+  background: transparent;
+}
+
+/* A window's content box (use mode renders this bare; arrange mode wraps it in a
+   MosaicWindow). It looks like a card and fills its tile. */
+.win,
+.mosaic-window {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+/* Dynamic windows get an accent edge (spec §1 anchored vs dynamic content). */
+.win--aiGrid,
+.mosaic-window.win--aiGrid {
+  border-color: var(--accent);
+}
+
+.win-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* react-mosaic window chrome (arrange mode) */
+.mosaic-window .mosaic-window-toolbar {
+  height: 36px;
+  background: var(--surface-sunken);
+  border-bottom: 1px solid var(--line);
+  cursor: move; /* the title bar is the drag grip */
+  padding: 0 6px 0 12px;
+}
+
+.mosaic-window .mosaic-window-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.mosaic-window .mosaic-window-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  background: var(--surface);
+}
+
+.win-close {
+  border: none;
+  background: transparent;
+  font-size: 0.95rem;
+  line-height: 1;
+  padding: 6px 8px;
+  border-radius: 6px;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.win-close:hover {
+  background: rgba(178, 58, 58, 0.12);
+  color: var(--danger);
+}
+
+/* Resize splitters between windows (only interactive in arrange mode). */
+.mosaic-aac .mosaic-split {
+  z-index: 1;
+}
+
+.mosaic-aac .mosaic-split .mosaic-split-line {
+  box-shadow: 0 0 0 1px var(--line);
+}
+
+.mosaic-aac .mosaic-split:hover .mosaic-split-line {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.mosaic-zero {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: var(--ink-soft);
+  text-align: center;
+  padding: 24px;
+}
+
+.window-placeholder {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: var(--ink-soft);
+}
+
+/* Narrow-screen stacked workspace (same layout object, different rendering). */
+.window-stack {
+  height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  padding: var(--gap);
+}
+
+.stack-window {
+  display: flex;
+  flex-direction: column;
+  min-height: 60vh; /* keep each window usable when stacked */
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.stack-window.win--aiGrid {
+  border-color: var(--accent);
+}
+
+.win-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 36px;
+  padding: 0 6px 0 12px;
+  background: var(--surface-sunken);
+  border-bottom: 1px solid var(--line);
+}
+
+.win-bar__title {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* Window palette */
+.palette {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.palette__heading {
+  margin: 6px 0 0;
+  font-size: 1rem;
+}
+
+.palette__grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.palette__item {
+  flex: 1 1 45%;
+  min-height: 52px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.palette__item:hover {
+  background: var(--surface-sunken);
+  border-color: var(--accent);
+}
+
+/* Auto-sizing tile grid: fills its window, cells sized in JS so tiles fit. */
+.auto-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  display: grid;
+  padding: var(--gap);
+}
+
+/* In an auto-grid, tiles fill their cell exactly (no min-height floor). */
+.auto-grid .tile,
+.auto-grid .ai-tile {
+  min-height: 0;
+  height: 100%;
+  width: 100%;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: var(--tap-min);
+  padding: 8px 6px;
+  border: 1px solid var(--line);
+  border-bottom-width: 4px;
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tile:hover {
+  filter: brightness(0.98);
+}
+
+.tile:active {
+  transform: translateY(1px);
+}
+
+/* Symbol and label scale with the computed cell size so tiles stay balanced at
+   whatever size they auto-size to. */
+.tile__symbol {
+  font-size: calc(var(--cell, 72px) * 0.4);
+  line-height: 1;
+}
+
+.tile__symbol--img {
+  width: calc(var(--cell, 72px) * 0.46);
+  height: calc(var(--cell, 72px) * 0.46);
+  object-fit: contain;
+}
+
+.tile__symbol--loading {
+  width: calc(var(--cell, 72px) * 0.46);
+  height: calc(var(--cell, 72px) * 0.46);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.tile__label {
+  font-size: clamp(0.7rem, calc(var(--cell, 72px) * 0.16), 1.2rem);
+  font-weight: 600;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.tile--pronoun { background: var(--cat-pronoun); border-color: var(--cat-pronoun-edge); color: var(--cat-pronoun-text); }
+.tile--verb { background: var(--cat-verb); border-color: var(--cat-verb-edge); color: var(--cat-verb-text); }
+.tile--describing { background: var(--cat-describing); border-color: var(--cat-describing-edge); color: var(--cat-describing-text); }
+.tile--noun { background: var(--cat-noun); border-color: var(--cat-noun-edge); color: var(--cat-noun-text); }
+.tile--place { background: var(--cat-place); border-color: var(--cat-place-edge); color: var(--cat-place-text); }
+.tile--social { background: var(--cat-social); border-color: var(--cat-social-edge); color: var(--cat-social-text); }
+
+/* ---- AI grid module ---- */
+.ai-grid {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.ai-grid__prompt {
+  display: flex;
+  gap: var(--gap);
+  padding: var(--gap);
+  border-bottom: 1px solid var(--line);
+}
+
+.ai-grid__input {
+  flex: 1;
+  min-width: 0;
+  padding: 0 14px;
+  height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font: inherit;
+  font-size: 1rem;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.ai-grid__prompt .ctrl--speak {
+  height: 48px;
+}
+
+/* Per-window AI word-count control (in the AI window's prompt row). */
+.ai-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 48px;
+  padding: 0 4px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.ai-count__btn {
+  width: 32px;
+  height: 38px;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 1.2rem;
+  line-height: 1;
+  color: var(--ink);
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.ai-count__btn:hover:not(:disabled) {
+  background: var(--surface-sunken);
+}
+
+.ai-count__btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.ai-count__val {
+  min-width: 1.6ch;
+  text-align: center;
+  font-weight: 700;
+}
+
+.ai-grid .auto-grid {
+  flex: 1;
+}
+
+.ai-grid__hint,
+.ai-grid__error {
+  margin: 0;
+  padding: 12px var(--gap);
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+.ai-grid__error {
+  color: var(--danger);
+}
+
+.ai-grid__hint code {
+  background: var(--surface-sunken);
+  padding: 1px 5px;
+  border-radius: 5px;
+  font-size: 0.85em;
+}
+
+/* The opt-in notice (spec §6.3) */
+.ai-grid--notice {
+  justify-content: center;
+  gap: 14px;
+  padding: 24px;
+  text-align: center;
+}
+
+.ai-grid--notice h3 {
+  margin: 0;
+}
+
+.ai-grid--notice p {
+  margin: 0 auto;
+  max-width: 46ch;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+
+.ai-grid--notice .ctrl {
+  align-self: center;
+}
+
+/* ---- Focus + motion ---- */
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
+
+/* ---- Edit affordances on tiles ---- */
+.tile--editing {
+  border-style: dashed;
+  cursor: pointer;
+}
+
+.tile__edit-badge {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
+.tile {
+  position: relative;
+}
+
+.tile--add {
+  border-style: dashed;
+  border-color: var(--accent);
+  color: var(--accent);
+  background: transparent;
+}
+
+.tile--add .tile__symbol {
+  color: var(--accent);
+}
+
+/* AI tile + "save to my words" overlay (edit mode) */
+.ai-tile {
+  position: relative;
+  display: flex;
+}
+
+.ai-tile > .tile {
+  flex: 1;
+}
+
+.ai-tile__save {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 3px 7px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.ai-tile__save:disabled {
+  border-color: var(--line);
+  color: var(--ink-soft);
+  cursor: default;
+}
+
+/* ---- Modal ---- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 24, 22, 0.45);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  z-index: 1000;
+}
+
+.modal {
+  background: var(--surface);
+  border-radius: 16px;
+  width: min(560px, 100%);
+  max-height: 90dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
+}
+
+.modal--wide {
+  width: min(760px, 100%);
+}
+
+.modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.modal__title {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.modal__close {
+  border: none;
+  background: transparent;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: var(--ink-soft);
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+
+.modal__close:hover {
+  background: var(--surface-sunken);
+}
+
+.modal__body {
+  padding: 16px;
+  overflow: auto;
+}
+
+/* ---- Tile editor ---- */
+.editor {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.editor__preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.tile--preview {
+  width: 110px;
+  height: 110px;
+  cursor: default;
+}
+
+.editor__preview-hint {
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+
+.editor__fields {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field__label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.field__input {
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font: inherit;
+  font-size: 1rem;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+select.field__input {
+  cursor: pointer;
+}
+
+.editor__search {
+  display: flex;
+  gap: 8px;
+}
+
+.editor__search .field__input {
+  flex: 1;
+}
+
+.editor__results {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  min-height: 56px;
+}
+
+.editor__result {
+  width: 56px;
+  height: 56px;
+  padding: 4px;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.editor__result img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.editor__result--selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(31, 111, 107, 0.25);
+}
+
+.editor__results-hint {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  align-self: center;
+}
+
+.editor__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  border-top: 1px solid var(--line);
+}
+
+.editor__spacer {
+  flex: 1;
+}
+
+/* ---- Keyboard ---- */
+.keyboard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.keyboard__display {
+  height: 52px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font: inherit;
+  font-size: 1.25rem;
+  background: var(--surface-sunken);
+  color: var(--ink);
+}
+
+.keyboard__keys {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.keyboard__row {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+.key {
+  flex: 1;
+  min-width: 0;
+  height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  font: inherit;
+  font-size: 1.05rem;
+  cursor: pointer;
+}
+
+.key:hover {
+  background: var(--surface-sunken);
+}
+
+.key:active {
+  transform: translateY(1px);
+}
+
+.key--wide {
+  flex: 1.6;
+}
+
+.key--space {
+  flex: 4;
+}
+
+.keyboard__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---- Settings ---- */
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Tabs at the top so each section is short — no long scroll. */
+.settings__tabs {
+  display: flex;
+  gap: 6px;
+  border-bottom: 1px solid var(--line);
+}
+
+.settings__tab {
+  flex: 1;
+  padding: 10px 12px;
+  border: none;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.settings__tab--active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.settings__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.settings__intro {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.settings__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settings__label {
+  font-weight: 600;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stepper__value {
+  min-width: 2ch;
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.settings__footer {
+  margin-top: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.settings__heading {
+  margin: 10px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 1rem;
+}
+
+.settings__hint {
+  color: var(--ink-soft);
+  font-weight: 400;
+}
+
+.color-input {
+  width: 56px;
+  height: 40px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+@media (max-width: 560px) {
+  .editor {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .editor__preview {
+    align-self: center;
+  }
+}
