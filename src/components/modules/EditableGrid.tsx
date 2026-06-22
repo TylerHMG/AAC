@@ -5,40 +5,46 @@ import { useMessageBar } from '../../state/MessageBarContext';
 import { TileButton } from '../Tile';
 import { TileEditor } from '../TileEditor';
 import { AutoTileGrid } from '../AutoTileGrid';
+import { showsSymbols } from '../../data/windowLibrary';
 
-// Core-grid window: the shared, editable vocabulary (spec Tier 0). Tiles come
-// from the workspace store so every core-grid window shows the same words, and
-// they auto-size to fill the window.
-export function EditableGrid() {
+// Grid window: an editable vocabulary that THIS window owns (per-instance tiles).
+// "Core words" is just a grid seeded with general vocabulary; topic grids are the
+// same component with different tiles. Tiles auto-size to fill the window; symbols
+// vs text is toggled from the window title bar (see WindowManager).
+export function EditableGrid({ windowId }: { windowId: string }) {
   const { append } = useMessageBar();
-  const { coreTiles, editMode, addCoreTile, updateCoreTile, removeCoreTile } = useBoard();
+  const { editMode, addWindowTile, updateWindowTile, removeWindowTile, windows } = useBoard();
 
   // null = closed; 'new' = create; a Tile = edit that tile.
   const [editing, setEditing] = useState<Tile | 'new' | null>(null);
 
-  const slots = Math.max(coreTiles.length + (editMode ? 1 : 0), 1);
+  const win = windows[windowId];
+  const tiles = win?.tiles ?? [];
+  const showSymbols = win ? showsSymbols(win) : true;
+  const slots = Math.max(tiles.length + (editMode ? 1 : 0), 1);
 
   function handleSave(draft: TileDraft) {
-    if (editing === 'new') addCoreTile(draft);
-    else if (editing) updateCoreTile({ ...editing, ...draft });
+    if (editing === 'new') addWindowTile(windowId, draft);
+    else if (editing) updateWindowTile(windowId, { ...editing, ...draft });
     setEditing(null);
   }
 
   function handleDelete() {
-    if (editing && editing !== 'new') removeCoreTile(editing.id);
+    if (editing && editing !== 'new') removeWindowTile(windowId, editing.id);
     setEditing(null);
   }
 
   return (
     <>
       <AutoTileGrid count={slots}>
-        {coreTiles.map((tile) => (
+        {tiles.map((tile) => (
           <TileButton
             key={tile.id}
             tile={tile}
             onSelect={append}
             editMode={editMode}
             onEdit={(t) => setEditing(t)}
+            textOnly={!showSymbols}
           />
         ))}
         {editMode && (

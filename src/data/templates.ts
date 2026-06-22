@@ -16,29 +16,33 @@ function win(type: WindowType): WindowInstance {
   return { id: type, type, title: windowTitle(type) };
 }
 
+// The main grid in a template — titled "Core words"; its tiles are seeded with
+// the general vocabulary when a board is created (see BoardStore).
+const coreGridWin: WindowInstance = { id: 'grid', type: 'grid', title: 'Core words' };
+
 export const TEMPLATES: Template[] = [
   {
     id: 'core-ai',
     name: 'Core + AI fringe',
-    tree: { direction: 'row', first: 'coreGrid', second: 'aiGrid', splitPercentage: 34 },
-    windows: { coreGrid: win('coreGrid'), aiGrid: win('aiGrid') },
+    tree: { direction: 'row', first: 'grid', second: 'aiGrid', splitPercentage: 34 },
+    windows: { grid: { ...coreGridWin }, aiGrid: win('aiGrid') },
   },
   {
     id: 'core-ai-predict',
     name: 'Core + AI + prediction',
     tree: {
       direction: 'row',
-      first: 'coreGrid',
+      first: 'grid',
       second: {
-        direction: 'column',
+        direction: 'row',
         first: 'aiGrid',
         second: 'autocomplete',
-        splitPercentage: 72,
+        splitPercentage: 58,
       },
-      splitPercentage: 34,
+      splitPercentage: 56,
     },
     windows: {
-      coreGrid: win('coreGrid'),
+      grid: { ...coreGridWin },
       aiGrid: win('aiGrid'),
       autocomplete: win('autocomplete'),
     },
@@ -46,12 +50,14 @@ export const TEMPLATES: Template[] = [
   {
     id: 'core-predict',
     name: 'Core + prediction',
-    tree: { direction: 'row', first: 'coreGrid', second: 'autocomplete', splitPercentage: 60 },
-    windows: { coreGrid: win('coreGrid'), autocomplete: win('autocomplete') },
+    tree: { direction: 'row', first: 'grid', second: 'autocomplete', splitPercentage: 60 },
+    windows: { grid: { ...coreGridWin }, autocomplete: win('autocomplete') },
   },
 ];
 
-export const DEFAULT_TEMPLATE = TEMPLATES[0];
+// New boards / fresh installs open with the three-pane Core + AI + prediction
+// layout (the full showcase).
+export const DEFAULT_TEMPLATE = TEMPLATES.find((t) => t.id === 'core-ai-predict') ?? TEMPLATES[0];
 
 // Deep-clone a template's layout so edits don't mutate the constant.
 export function cloneTemplate(t: Template): { tree: MosaicNode<string> | null; windows: Record<string, WindowInstance> } {

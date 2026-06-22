@@ -8,12 +8,12 @@ import { Autocomplete } from '../modules/Autocomplete';
 // their own settings. Not-yet-built types show a labelled placeholder.
 export function WindowContent({ type, windowId }: { type: WindowType; windowId: string }) {
   switch (type) {
-    case 'coreGrid':
-      return <EditableGrid />;
+    case 'grid':
+      return <EditableGrid windowId={windowId} />;
     case 'aiGrid':
       return <AiGrid windowId={windowId} />;
     case 'autocomplete':
-      return <Autocomplete />;
+      return <Autocomplete windowId={windowId} />;
     default:
       return <div className="window-placeholder">{type} (coming soon)</div>;
   }

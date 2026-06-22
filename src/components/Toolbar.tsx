@@ -5,11 +5,11 @@ import { useLongPress } from '../hooks/useLongPress';
 // hold-to-edit lock and the keyboard. In arrange mode: add-window, settings,
 // done, and the keyboard.
 export function Toolbar({
-  onOpenKeyboard,
+  onOpenType,
   onOpenSettings,
   onOpenPalette,
 }: {
-  onOpenKeyboard: () => void;
+  onOpenType: () => void;
   onOpenSettings: () => void;
   onOpenPalette: () => void;
 }) {
@@ -43,8 +43,8 @@ export function Toolbar({
         </button>
       )}
 
-      <button type="button" className="ctrl" onClick={onOpenKeyboard} aria-label="Open keyboard">
-        ⌨ Keyboard
+      <button type="button" className="ctrl" onClick={onOpenType} aria-label="Type with the keyboard">
+        ⌨ Type
       </button>
     </div>
   );

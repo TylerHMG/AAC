@@ -3,15 +3,17 @@ import { WindowManager } from './components/WindowManager';
 import { Toolbar } from './components/Toolbar';
 import { Modal } from './components/Modal';
 import { MessageBar } from './components/modules/MessageBar';
-import { Keyboard } from './components/modules/Keyboard';
+import { TypePanel } from './components/modules/TypePanel';
 import { SettingsPanel } from './components/SettingsPanel';
 import { WindowPalette } from './components/WindowPalette';
+import { BoardSwitcher } from './components/BoardSwitcher';
 import { MessageBarProvider } from './state/MessageBarContext';
 import { BoardProvider, useBoard } from './state/BoardStore';
+import { WindowLibraryProvider } from './state/WindowLibraryStore';
 
 function Workspace() {
   const { editMode, hydrated } = useBoard();
-  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [typeOpen, setTypeOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
 
@@ -22,6 +24,7 @@ function Workspace() {
           <h1 className="app__title">Modular AAC</h1>
           <span className="app__subtitle">{editMode ? 'arrange mode' : 'iteration 3'}</span>
         </div>
+        <BoardSwitcher />
       </header>
 
       {/* Fixed message-bar frame — the shared output buffer. Not a window:
@@ -38,7 +41,7 @@ function Workspace() {
       {/* Controls live at the bottom for easier reach. */}
       <nav className="app__bottombar" aria-label="Board controls">
         <Toolbar
-          onOpenKeyboard={() => setKeyboardOpen(true)}
+          onOpenType={() => setTypeOpen(true)}
           onOpenSettings={() => setSettingsOpen(true)}
           onOpenPalette={() => setPaletteOpen(true)}
         />
@@ -52,9 +55,9 @@ function Workspace() {
         <span>Everything stays on this device. The optional AI feature sends only the scenario you type.</span>
       </footer>
 
-      {keyboardOpen && (
-        <Modal title="Keyboard" onClose={() => setKeyboardOpen(false)} wide>
-          <Keyboard onClose={() => setKeyboardOpen(false)} />
+      {typeOpen && (
+        <Modal title="Type" onClose={() => setTypeOpen(false)}>
+          <TypePanel onClose={() => setTypeOpen(false)} />
         </Modal>
       )}
       {settingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} />}
@@ -66,9 +69,11 @@ function Workspace() {
 export default function App() {
   return (
     <BoardProvider>
-      <MessageBarProvider>
-        <Workspace />
-      </MessageBarProvider>
+      <WindowLibraryProvider>
+        <MessageBarProvider>
+          <Workspace />
+        </MessageBarProvider>
+      </WindowLibraryProvider>
     </BoardProvider>
   );
 }

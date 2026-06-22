@@ -1,19 +1,31 @@
 import { useMessageBar } from '../../state/MessageBarContext';
 
 // The message-bar module (spec Tier 0): accumulate, speak, backspace, clear.
-// Anchored — it is the hub the other modules write into.
+// Anchored — it is the hub the other modules write into. Speak sits on the left;
+// the phrase fills the middle; Clear and Delete sit on the right (Delete last).
 export function MessageBar() {
   const { items, backspace, clear, speakAll } = useMessageBar();
+  const empty = items.length === 0;
 
   return (
     <div className="message-bar">
+      <button
+        type="button"
+        className="ctrl ctrl--speak message-bar__speak"
+        onClick={speakAll}
+        disabled={empty}
+        aria-label="Speak"
+      >
+        🔊 Speak
+      </button>
+
       <button
         type="button"
         className="message-bar__phrase"
         onClick={speakAll}
         aria-label="Speak the whole message"
       >
-        {items.length === 0 ? (
+        {empty ? (
           <span className="message-bar__placeholder">Tap words to build a message…</span>
         ) : (
           items.map((item) => (
@@ -27,30 +39,21 @@ export function MessageBar() {
       <div className="message-bar__controls">
         <button
           type="button"
-          className="ctrl ctrl--speak"
-          onClick={speakAll}
-          disabled={items.length === 0}
-          aria-label="Speak"
+          className="ctrl"
+          onClick={clear}
+          disabled={empty}
+          aria-label="Clear"
         >
-          🔊 Speak
+          Clear
         </button>
         <button
           type="button"
           className="ctrl"
           onClick={backspace}
-          disabled={items.length === 0}
-          aria-label="Backspace"
+          disabled={empty}
+          aria-label="Delete"
         >
           ⌫
-        </button>
-        <button
-          type="button"
-          className="ctrl"
-          onClick={clear}
-          disabled={items.length === 0}
-          aria-label="Clear"
-        >
-          Clear
         </button>
       </div>
     </div>

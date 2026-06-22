@@ -36,6 +36,36 @@ export default defineConfig({
       workbox: {
         // Cache the app shell; SVG/woff included for offline symbols/fonts.
         globPatterns: ['**/*.{js,css,html,svg,woff,woff2}'],
+        // Runtime caching for ARASAAC pictograms (cross-origin, fetched on demand
+        // so they can't be precached). Each symbol downloads once while online,
+        // then works offline — essential for a communication device.
+        runtimeCaching: [
+          {
+            // The pictogram images themselves (the important one for offline).
+            urlPattern: /^https:\/\/static\.arasaac\.org\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'arasaac-pictograms',
+              expiration: {
+                maxEntries: 1000,
+                maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
+                purgeOnQuotaError: true,
+              },
+              // status 0 = opaque cross-origin <img> response; still cacheable.
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            // Keyword → id lookups; serve cached results when offline.
+            urlPattern: /^https:\/\/api\.arasaac\.org\/.*/i,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'arasaac-api',
+              expiration: { maxEntries: 500, maxAgeSeconds: 60 * 60 * 24 * 30 }, // 30 days
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
       },
       // Let the offline app also work while developing.
       devOptions: { enabled: false },

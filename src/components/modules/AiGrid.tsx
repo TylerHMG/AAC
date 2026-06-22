@@ -11,6 +11,7 @@ import { useMessageBar } from '../../state/MessageBarContext';
 import { useBoard, AI_COUNT_MIN, AI_COUNT_MAX, DEFAULT_AI_COUNT } from '../../state/BoardStore';
 import { TileButton } from '../Tile';
 import { AutoTileGrid } from '../AutoTileGrid';
+import { showsSymbols } from '../../data/windowLibrary';
 
 const CONSENT_KEY = 'aac.aiConsent.v1';
 
@@ -26,7 +27,11 @@ const CONSENT_NOTICE =
 // the inline −/+ control; tiles auto-size to fit the window.
 export function AiGrid({ windowId }: { windowId: string }) {
   const { append } = useMessageBar();
-  const { windows, updateWindowConfig, editMode, addCoreTile } = useBoard();
+  const { windows, updateWindowConfig, editMode, addWindowTile } = useBoard();
+
+  // "Save to my words" targets the first grid window on the board (there is no
+  // single shared vocabulary anymore). Disabled when no grid window exists.
+  const targetGridId = Object.values(windows).find((w) => w.type === 'grid')?.id ?? null;
 
   const [consented, setConsented] = useState<boolean>(
     () => localStorage.getItem(CONSENT_KEY) === 'true',
@@ -39,7 +44,9 @@ export function AiGrid({ windowId }: { windowId: string }) {
   const [needsCode, setNeedsCode] = useState<boolean>(() => !hasAccessCode());
   const [codeInput, setCodeInput] = useState('');
 
-  const count = windows[windowId]?.config?.aiCount ?? DEFAULT_AI_COUNT;
+  const win = windows[windowId];
+  const count = win?.config?.aiCount ?? DEFAULT_AI_COUNT;
+  const showSymbols = win ? showsSymbols(win) : true; // AI defaults to symbols
 
   function setCount(n: number) {
     updateWindowConfig(windowId, { aiCount: Math.min(AI_COUNT_MAX, Math.max(AI_COUNT_MIN, n)) });
@@ -75,7 +82,8 @@ export function AiGrid({ windowId }: { windowId: string }) {
   }
 
   function saveTile(tile: Tile) {
-    addCoreTile({
+    if (!targetGridId) return;
+    addWindowTile(targetGridId, {
       label: tile.label,
       spokenText: tile.spokenText,
       symbolKeyword: tile.symbolKeyword,
@@ -146,10 +154,11 @@ export function AiGrid({ windowId }: { windowId: string }) {
         <input
           type="text"
           className="ai-grid__input"
-          placeholder="Describe the situation, e.g. “at the park feeding ducks”"
+          placeholder="Describe the situation, then press Enter — e.g. “at the park feeding ducks”"
           value={scenario}
           onChange={(e) => setScenario(e.target.value)}
           disabled={loading}
+          aria-label="Describe the situation, then press Enter to generate"
         />
         {/* This window's own word count — click −/+ to change how many it makes. */}
         <div className="ai-count" title="How many words this box generates">
@@ -175,14 +184,10 @@ export function AiGrid({ windowId }: { windowId: string }) {
             ＋
           </button>
         </div>
-        <button
-          type="submit"
-          className="ctrl ctrl--speak"
-          disabled={loading || scenario.trim() === ''}
-        >
-          {loading ? 'Generating…' : tiles.length > 0 ? 'Regenerate' : 'Generate'}
-        </button>
+        {/* No Generate button — a single-field form submits on Enter. */}
       </form>
+
+      {loading && <p className="ai-grid__hint">Generating…</p>}
 
       {error && <p className="ai-grid__error">{error}</p>}
 
@@ -190,14 +195,15 @@ export function AiGrid({ windowId }: { windowId: string }) {
         <AutoTileGrid count={tiles.length}>
           {tiles.map((tile) => (
             <div className="ai-tile" key={tile.id}>
-              <TileButton tile={tile} onSelect={append} />
+              <TileButton tile={tile} onSelect={append} textOnly={!showSymbols} />
               {editMode && (
                 <button
                   type="button"
                   className="ai-tile__save"
                   onClick={() => saveTile(tile)}
-                  disabled={saved.has(tile.id)}
-                  aria-label={`Save ${tile.label} to my words`}
+                  disabled={saved.has(tile.id) || !targetGridId}
+                  title={targetGridId ? undefined : 'Add a grid window to save words'}
+                  aria-label={`Save ${tile.label} to a grid`}
                 >
                   {saved.has(tile.id) ? '✓ Saved' : '＋ Save'}
                 </button>
@@ -209,8 +215,7 @@ export function AiGrid({ windowId }: { windowId: string }) {
         !loading &&
         !error && (
           <p className="ai-grid__hint">
-            Type a situation above and tap Generate. Suggested words appear here; the core words
-            on the left always stay in the same place.
+            Type a situation above and press Enter. Suggested words for that moment appear here.
           </p>
         )
       )}

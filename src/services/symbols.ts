@@ -69,9 +69,9 @@ export class ArasaacSymbolProvider implements SymbolProvider {
   readonly name = 'arasaac';
   private emoji = new EmojiSymbolProvider();
   private memory = new Map<string, SymbolRef>();
-  // Persistent keyword → pictogram id cache (null = searched, no match). Images
-  // themselves are served from a CDN and cached by the browser, so we only need
-  // to remember the id. Offline image (blob) caching is a later, larger step.
+  // Persistent keyword → pictogram id cache (null = searched, no match). The
+  // images themselves are runtime-cached by the service worker (see the ARASAAC
+  // rule in vite.config.ts), so once a symbol is seen online it works offline.
   private ids: Map<string, number | null>;
 
   constructor() {

@@ -1,7 +1,8 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Tile } from '../types/module';
 import { tts } from '../services/tts';
+import { learnSequence, tokenize } from '../services/prediction';
 
 // The message bar is the central object that makes a pile of heterogeneous
 // modules behave like one device (spec §2.2). Writer modules append to it;
@@ -32,6 +33,12 @@ const MessageBarContext = createContext<MessageBarState | null>(null);
 
 export function MessageBarProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<BufferItem[]>([]);
+  // Mirror items in a ref so speakAll can read the current buffer without a
+  // state-updater side effect (which would double-fire under StrictMode).
+  const itemsRef = useRef(items);
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
 
   const append = useCallback((tile: Tile) => {
     tts.speak(tile.spokenText);
@@ -65,11 +72,12 @@ export function MessageBarProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const speakAll = useCallback(() => {
-    setItems((current) => {
-      const phrase = current.map((item) => item.spokenText).join(' ');
-      tts.speak(phrase);
-      return current;
-    });
+    const current = itemsRef.current;
+    if (current.length === 0) return;
+    tts.speak(current.map((item) => item.spokenText).join(' '));
+    // A spoken phrase is a real utterance — learn it for word prediction
+    // (on-device only). Learn from the displayed labels (word units).
+    learnSequence(tokenize(current.map((item) => item.label).join(' ')));
   }, []);
 
   const value = useMemo<MessageBarState>(

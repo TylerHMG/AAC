@@ -5,7 +5,7 @@
 
 export type ModuleType =
   | 'messageBar'
-  | 'coreGrid'
+  | 'grid'
   | 'aiGrid'
   | 'topicGrid'
   | 'quickPhrases'
