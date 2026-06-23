@@ -7,6 +7,7 @@ import { TypePanel } from './components/modules/TypePanel';
 import { SettingsPanel } from './components/SettingsPanel';
 import { WindowPalette } from './components/WindowPalette';
 import { BoardSwitcher } from './components/BoardSwitcher';
+import { AboutModal } from './components/AboutModal';
 import { MessageBarProvider } from './state/MessageBarContext';
 import { BoardProvider, useBoard } from './state/BoardStore';
 import { WindowLibraryProvider } from './state/WindowLibraryStore';
@@ -16,6 +17,7 @@ function Workspace() {
   const [typeOpen, setTypeOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
 
   return (
     <div className={`app${editMode ? ' app--editing' : ''}`}>
@@ -48,6 +50,9 @@ function Workspace() {
       </nav>
 
       <footer className="app__footer">
+        <button type="button" className="app__about" onClick={() => setAboutOpen(true)}>
+          About
+        </button>
         <span>
           Pictograms courtesy of ARASAAC (https://arasaac.org), property of the Government of
           Aragon, created by Sergio Palao, distributed under CC BY-NC-SA.
@@ -62,6 +67,7 @@ function Workspace() {
       )}
       {settingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} />}
       {paletteOpen && <WindowPalette onClose={() => setPaletteOpen(false)} />}
+      {aboutOpen && <AboutModal onClose={() => setAboutOpen(false)} />}
     </div>
   );
 }
